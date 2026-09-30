@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Aria2 Download Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            width: 400px;
+            min-height: 500px;
+        }
+        .header {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-bottom: 1px solid #3d3d3d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: #4CAF50;
+        }
+        .status-badge.disconnected {
+            background-color: #f44336;
+        }
+        .url-input-section {
+            padding: 15px;
+            background-color: #252525;
+            border-bottom: 1px solid #3d3d3d;
+        }
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            background-color: #1e1e1e;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        .url-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .add-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .add-btn:hover {
+            background-color: #45a049;
+        }
+        .add-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        .downloads-section {
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .download-card {
+            background-color: #2d2d2d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #3d3d3d;
+        }
+        .download-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .filename {
+            font-size: 13px;
+            font-weight: 500;
+            color: #ffffff;
+            word-break: break-all;
+            flex: 1;
+            margin-right: 10px;
+        }
+        .status {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        .status.active {
+            background-color: #2196F3;
+            color: white;
+        }
+        .status.waiting {
+            background-color: #FF9800;
+            color: white;
+        }
+        .status.completed {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .status.error {
+            background-color: #f44336;
+            color: white;
+        }
+        .status.paused {
+            background-color: #9E9E9E;
+            color: white;
+        }
+        .progress-bar {
+            height: 4px;
+            background-color: #3d3d3d;
+            border-radius: 2px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+        .download-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .controls {
+            display: flex;
+            gap: 6px;
+        }
+        .control-btn {
+            flex: 1;
+            padding: 6px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .pause-btn {
+            background-color: #FF9800;
+            color: white;
+        }
+        .pause-btn:hover {
+            background-color: #e68900;
+        }
+        .resume-btn {
+            background-color: #2196F3;
+            color: white;
+        }
+        .resume-btn:hover {
+            background-color: #1976D2;
+        }
+        .remove-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .remove-btn:hover {
+            background-color: #d32f2f;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .empty-state-text {
+            font-size: 13px;
+        }
+        .empty-state-subtext {
+            margin-top: 10px;
+        }
+        .launch-app-btn {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+        }
+        .launch-app-btn:hover {
+            background-color: #1976D2;
+        }
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+        .refresh-btn:hover {
+            color: #ffffff;
+        }
+        .source-tag {
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 3px;
+            background-color: #555;
+            color: #aaa;
+            margin-left: 5px;
+        }
+        .footer-section {
+            padding: 10px;
+        }
+        .advanced-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: #252525;
+            border-bottom: 1px solid #3d3d3d;
+            cursor: pointer;
+        }
+        .advanced-toggle:hover {
+            background-color: #2d2d2d;
+        }
+        .toggle-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background-color: #555;
+            border-radius: 12px;
+            transition: background-color 0.3s;
+        }
+        .toggle-switch.active {
+            background-color: #4CAF50;
+        }
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(20px);
+        }
+        .advanced-settings {
+            display: none;
+            padding: 15px;
+            background-color: #252525;
+            border-bottom: 1px solid #3d3d3d;
+        }
+        .advanced-settings.visible {
+            display: block;
+        }
+        .setting-row {
+            margin-bottom: 15px;
+        }
+        .setting-row:last-child {
+            margin-bottom: 0;
+        }
+        .setting-label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        .setting-input {
+            width: 100%;
+            padding: 8px;
+            background-color: #1e1e1e;
+            border: 1px solid #3d3d3d;
+            border-radius: 4px;
+            color: #ffffff;
+            font-size: 13px;
+        }
+        .setting-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        .setting-input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        .setting-input[type="number"]::-webkit-outer-spin-button,
+        .setting-input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .save-settings-btn {
+            width: 100%;
+            padding: 8px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .save-settings-btn:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Aria2 Manager</h1>
+        <div class="header-controls">
+            <span id="statusBadge" class="status-badge disconnected">Disconnected</span>
+            <button id="refreshBtn" class="refresh-btn" title="Refresh">↻</button>
+        </div>
+    </div>
+
+    <div class="url-input-section">
+        <input type="text" id="urlInput" class="url-input" placeholder="Paste URL to download...">
+        <button id="addBtn" class="add-btn">Add Download</button>
+    </div>
+
+    <div class="advanced-toggle" id="advancedToggle">
+        <span class="toggle-label">Advanced Mode</span>
+        <div class="toggle-switch" id="toggleSwitch">
+            <div class="toggle-slider"></div>
+        </div>
+    </div>
+
+    <div class="advanced-settings" id="advancedSettings">
+        <div class="setting-row">
+            <label class="setting-label">Download Directory</label>
+            <input type="text" id="downloadDirInput" class="setting-input" placeholder="e.g., C:\Downloads">
+        </div>
+        <div class="setting-row">
+            <label class="setting-label">Parallel Connections (1-32)</label>
+            <input type="number" id="connectionsInput" class="setting-input" min="1" max="32" value="16">
+        </div>
+        <div class="setting-row">
+            <label class="setting-label">Split Parts (1-32)</label>
+            <input type="number" id="splitsInput" class="setting-input" min="1" max="32" value="16">
+        </div>
+        <button id="saveSettingsBtn" class="save-settings-btn">Save Settings</button>
+    </div>
+
+    <div id="downloadsSection" class="downloads-section">
+        <div class="empty-state">
+            <div class="empty-state-icon">📥</div>
+            <div class="empty-state-text">No downloads yet</div>
+        </div>
+    </div>
+
+    <div class="footer-section">
+        <button id="launchAppBtn" class="launch-app-btn">Launch Desktop App</button>
+        <button id="startDaemonBtn" class="launch-app-btn" style="display: none; background-color: #FF9800;">Start Daemon</button>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
